@@ -15,7 +15,7 @@ initialize() {
 		sim.subpopulations[i-1].setMigrationRates(i-1, 0.2);
 	for (i in 1:(subpopCount-1))
 		sim.subpopulations[i-1].setMigrationRates(i+1, 0.05);
-	sim.subpopulations[9].setMigrationRates(1,0.05);
-	sim.subpopulations[0].setMigrationRates(10,0.2);
+	sim.subpopulations[9].setMigrationRates(1,0.05); \\this sets the migration rate from pop1 to pop10
+	sim.subpopulations[0].setMigrationRates(10,0.2); \\this sets the migration rate from pop10 to pop1
 }
 10000 late() { sim.outputFull(); }
