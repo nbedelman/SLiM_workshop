@@ -1,0 +1,35 @@
+// Keywords: migration, dispersal
+
+initialize() {
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+//1 {
+//	subpopCount = 10;
+//	for (i in 1:subpopCount)
+//		sim.addSubpop(i, 500);
+//	for (i in c(2:subpopCount)
+//		sim.subpopulations[i-1].setMigrationRates(i-1, 0.2);
+//	for (i in 1:(subpopCount-1))
+//		sim.subpopulations[i-1].setMigrationRates(i+1, 0.05);
+//	sim.subpopulations[9].setMigrationRates(1,0.05);
+//	sim.subpopulations[0].setMigrationRates(10,0.2);
+//}
+
+1{
+	subpopCount = 15;	// set number of subpops
+	subpopVector = c(1:subpopCount,1); //make a vector with an extra 1 at the end
+	for (i in 1:subpopCount) //generate subpops
+		sim.addSubpop(i, 500);
+	for (i in 1:subpopCount) {
+		pair=c(subpopVector[i-1],subpopVector[i]); //define pairs of hybridizing groups; only make as many pairs as there are populations
+		sim.subpopulations[pair[0]-1].setMigrationRates(pair[1],0.05); //beware of n-1 errors! when subsetting subpopulations list, need to do pop number -1, but when definiting migration rate, need to just give subpop number!
+		sim.subpopulations[pair[1]-1].setMigrationRates(pair[0],0.2);
+	} 
+}
+
+
+10000 late() { sim.outputFull(); }
