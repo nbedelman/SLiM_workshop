@@ -1,0 +1,60 @@
+// set up a simple neutral simulation
+initialize() {
+	defineConstant("simID", getSeed());
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "e", 0.05);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", 500);
+}
+
+1000 late() {
+	allValidMuts=(sim.mutations[sim.mutationFrequencies(NULL) < 0.3 & 
+	sim.mutationFrequencies(NULL) > 0.1]);
+	target=sample(allValidMuts,1);
+	catn("TARGET ORIGIN:" + target.originGeneration);
+	target.setMutationType(m2);
+	target.setSelectionCoeff(m2.drawSelectionCoefficient());
+	sim.outputFull("/tmp/slim_" + simID + ".txt");
+}
+
+1000:100000 late(){
+	sweep=sim.mutationsOfType(m2); //get all mutations of type m2. should just be the one we added at gen 1000; if that one is lost this will be an empty vector
+	
+	if (size(sweep) == 0){
+		if (sum(sim.substitutions.mutationType == m2) ==1) //is our mutation a substitution?
+		{
+			catn(sim.generation + ": FIXED");
+			sim.simulationFinished();
+		}
+		else {
+			cat(simID + ": LOST - RESTARTING\n");
+			sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
+			setSeed(rdunif(1,0,asInteger(2^62) - 1));
+			catn("# NEW SEED: " + getSeed());
+		}
+	}
+	else {
+		freq=sim.mutationFrequencies(NULL,sweep);
+		catn(sim.generation + ": " + freq);
+	}
+}
+
+100000 late(){
+	catn("TIME EXPIRED");
+	sim.simuationFinished();
+}
+
+
