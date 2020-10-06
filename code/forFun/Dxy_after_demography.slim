@@ -1,0 +1,51 @@
+// set up a simple neutral simulation
+initialize() {
+	defineConstant("popSize", 1000);
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.5);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", popSize);
+}
+
+10000 late() {
+sim.addSubpopSplit("p2",popSize,p1);
+sim.addSubpopSplit("p3",popSize,p1);
+p1.setSubpopulationSize(0);
+}
+
+
+10000:500000 late(){
+if (sim.generation % 50 == 0){
+fixedp2=sim.mutations[sim.mutationFrequencies(p2)==1];
+absentp3=sim.mutations[sim.mutationFrequencies(p3)==0];
+fixedp3=sim.mutations[sim.mutationFrequencies(p3)==1];
+absentp2=sim.mutations[sim.mutationFrequencies(p2)==0];
+fixedDiffs=size(setIntersection(fixedp2,absentp2))+size(setIntersection(fixedp3,absentp2));
+Dxy=c();
+for (i in sample(p2.genomes,20)){
+for (j in sample(p3.genomes,20)){
+Dxy=c(Dxy,size(setDifference(i.mutations,j.mutations)));
+}
+}
+Dxytotal=mean(Dxy);
+//catn(Dxy);
+//catn("Fixed diffs: " + fixedDiffs + ", mean Dxy: " + Dxytotal);
+writeFile("~/Desktop/dxyAfterDemography.txt", popSize + "\t" + sim.generation + "\t" + fixedDiffs + "\t"+ Dxytotal, append=T);
+
+}
+}
+
+

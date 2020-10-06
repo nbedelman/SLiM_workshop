@@ -1,0 +1,38 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.02);
+	initializeMutationType("m3", 0.5, "f", 0.02);
+
+	initializeGenomicElementType("g1",c(m1,m2,m3), c(1.0, 0.01, 0.01));
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	defineConstant("m2Sel" , -0.02);
+	defineConstant("m2Dom", 0.5);
+	
+	defineConstant("m3Sel" , -0.02);
+	defineConstant("m3Dom", 0.5);
+	
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	p1.setMigrationRates(p2, 0.1);
+	p2.setMigrationRates(p1, 0.5);
+}
+
+fitness(m2,p2) {return homozygous ? 1+m2Sel else 1+m2Sel*m2Dom;}
+fitness(m3,p1) {return homozygous ? 1+m3Sel else 1+m3Sel*m2Dom;}
+
+50000 {
+	catn("m2 fixed: " + sum(sim.substitutions.mutationType == m2));
+	catn("m3 fixed: " + sum(sim.substitutions.mutationType == m3));
+}
+
