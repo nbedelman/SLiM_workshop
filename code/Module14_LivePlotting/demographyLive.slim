@@ -1,0 +1,89 @@
+// set up a simple neutral simulation
+initialize() {
+	defineConstant("popSize", 500);
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 1.0, "f", 0.5);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+	
+	if (fileExists("/usr/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/bin/Rscript");
+	else if (fileExists("/usr/local/bin/Rscript"))
+		defineConstant("RSCRIPT", "/usr/local/bin/Rscript");
+	else
+		stop("Couldn't find Rscript.");
+	
+	defineConstant("scriptPath","/Users/nbedelman/Documents/SLiM_workshop/code/Module14_LivePlotting/demographyLive.R");
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", popSize);
+	defineConstant("pdfPath", writeTempFile("plot_",".pdf",""));
+}
+
+9999 late() {
+	sim.addSubpopSplit("p2",popSize,p1);
+	sim.addSubpopSplit("p3",popSize,p1);
+	p1.setSubpopulationSize(0);
+	sim.setValue("fixedDiffs", NULL);
+	sim.setValue("Dxy", NULL);
+	sim.setValue("gCount", NULL);
+}
+
+
+10000:50000 late(){
+	if (sim.generation % 50 == 0){
+		fixedp2=sim.mutations[sim.mutationFrequencies(p2)==1];
+		absentp3=sim.mutations[sim.mutationFrequencies(p3)==0];
+		fixedp3=sim.mutations[sim.mutationFrequencies(p3)==1];
+		absentp2=sim.mutations[sim.mutationFrequencies(p2)==0];
+		fixedDiffs=size(setIntersection(fixedp2,absentp2))+size(setIntersection(fixedp3,absentp2));
+		Dxy=c();
+		for (i in sample(p2.genomes,20)){
+			for (j in sample(p3.genomes,20)){
+				Dxy=c(Dxy,size(setDifference(i.mutations,j.mutations)));
+			}
+		}
+		Dxytotal=mean(Dxy);
+		
+		newFixed=c(sim.getValue("fixedDiffs"), fixedDiffs);
+		sim.setValue("fixedDiffs",newFixed);
+		
+		newDxy=c(sim.getValue("Dxy"), Dxy);
+		sim.setValue("Dxy",newDxy);
+		
+		newGens=c(sim.getValue("gCount"),sim.generation);
+		sim.setValue("gCount",newGens);
+		
+		if (exists("slimgui"))
+			slimgui.openDocument(pdfPath);
+		
+		strFixed="";
+		strDxy="";
+		strGens="";
+		
+		for (i in seq(0,length(sim.getValue("fixedDiffs"))-1)){
+		strFixed=strFixed+sim.getValue("fixedDiffs")[i]+",";
+		strDxy=strDxy+newDxy[i]+",";
+		strGens=strGens+newGens[i]+",";
+		}
+
+		system(RSCRIPT, args=c(scriptPath, strFixed, strDxy, strGens, pdfPath));
+		
+		catn(sim.getValue("fixedDiffs"),sep=",");
+		
+		//writeFile("~/Desktop/dxyAfterDemography.txt", popSize + "\t" + sim.generation + "\t" + fixedDiffs + "\t"+ Dxytotal, append=T);
+	
+	}
+}
+
+
