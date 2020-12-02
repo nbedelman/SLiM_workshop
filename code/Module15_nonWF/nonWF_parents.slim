@@ -1,0 +1,53 @@
+initialize() {
+	initializeSLiMModelType("nonWF");
+	defineConstant("K", 500); // carrying capacity
+	// neutral mutations, which are allowed to fix
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	m1.convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeMutationType("m2", 0.5, "f", -0.1);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+
+1 early() {
+	sim.addSubpop("p1", 10);
+	sim.addSubpop("p2", 10);
+}
+
+early() {
+	p1Migrants=sample(p1.individuals, asInteger(round(0.01*p1.individualCount)));
+	p2Migrants=sample(p2.individuals, asInteger(round(0.01*p2.individualCount)));
+	p1.takeMigrants(p2Migrants);
+	p2.takeMigrants(p1Migrants);
+	for (s in c(p1,p2)){
+	inds = s.individuals;
+	inds.fitnessScaling = ifelse(inds.age <= 2, 1.0, 0.0);
+	
+	s.fitnessScaling = K / sum(inds.fitnessScaling);
+	}
+}
+
+late() {
+	inds = p1.individuals;
+	cat(sim.generation + ": " + size(inds));
+	catn(" (" + max(inds.age) + ", " + mean(inds.age) + ")");
+}
+
+reproduction() {
+	for (s in c(p1,p2)){
+	parents=sample(s.individuals, s.individualCount);
+	
+	for (i in seq(0, s.individualCount - 2, by=2)){ //loop through parents by 2s
+	parent1 = parents[i];
+	parent2 = parents[i+1];
+	litterSize = rpois(1, 2.7);
+	 for (j in seqLen(litterSize))
+	 	s.addCrossed(parent1, parent2);
+	}
+	}
+	self.active = 0;
+}
+
+1000 late(){sim.simulationFinished();}

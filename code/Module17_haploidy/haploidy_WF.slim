@@ -1,0 +1,33 @@
+// set up a simple neutral simulation
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 1.0, "f", 0.0);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(0);
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", 500);
+	p1.setCloningRate(1.0);
+}
+
+late() {
+	// remove any new mutations added to the disabled diploid genomes
+	sim.subpopulations.individuals.genome2.removeMutations();
+	// remove mutations in the haploid genomes that have fixed
+	muts = sim.mutationsOfType(m1);
+	freqs = sim.mutationFrequencies(NULL, muts);
+	if (any(freqs == 0.5))
+		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+}
+
+// output samples of 10 genomes periodically, all fixed mutations at end
+20000 late() { sim.outputFixedMutations(); }
